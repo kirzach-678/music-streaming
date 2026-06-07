@@ -9,8 +9,9 @@ erDiagram
 		text audioPath
 		text lyricsPath
 		text title
-		int durationSeconds
+		int durationSec
 		boolean explicit
+		date publication_date
 	}
 
 	GENRE {
@@ -46,7 +47,7 @@ erDiagram
 		int genreId FK,PK
 	}
 
-	SONG-ARTIST {
+	ARTIST-SONG {
 		int songId FK,PK
 		int artistId FK,PK
 	}
@@ -76,14 +77,15 @@ erDiagram
 		text email
 		text passwordHash
 		date registrationDate
-		boolean banned
+		boolean deleted
+		text deletion_reason
 	}
 
 	SUBSCRIPTION {
 		int subscriptionId PK
 		text name
 		numeric price
-		int duration_days
+		interval duration
 	}
 
 	PAYMENT {
@@ -112,14 +114,15 @@ erDiagram
 	PLAY-HISTORY {
 		int userId FK,PK
 		int songId FK,PK
-		int playDuration
+		timestamptz playedAt
+		int durationSec
 	}
 
 	SONG ||--o{ SONG-GENRE : "формирует"
 	GENRE ||--o{ SONG-GENRE : "описывает"
 
-	SONG ||--o{ SONG-ARTIST : "написанa"
-	ARTIST ||--o{ SONG-ARTIST : "пишет"
+	ARTIST ||--o{ ARTIST-SONG : "пишет"
+	SONG ||--o{ ARTIST-SONG : "написанa"
 
 	SONG ||--o{ SONG-RELEASE : "формирует"
 	RELEASE ||--o{ SONG-RELEASE : "включает в себя"
