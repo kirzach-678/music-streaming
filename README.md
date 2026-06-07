@@ -82,7 +82,7 @@ erDiagram
 	SUBSCRIPTION {
 		int subscriptionId PK
 		text name
-		numeric(10, 2) price
+		numeric price
 		int duration_days
 	}
 
@@ -90,7 +90,7 @@ erDiagram
 		int paymentId PK
 		int userId FK
 		int subscriptionId FK
-		numeric(10, 2) amountPaid
+		numeric amountPaid
 		text method
 		text status
 		timestamptz dt
