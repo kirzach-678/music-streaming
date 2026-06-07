@@ -1,0 +1,5 @@
+- [x] soft deletes for users
+- [x] `ON DELETE CASCADE` in join tables
+- [x] find out if compose primary keys need `NOT NULL`
+- [ ] maybe add `subscription_active_until` field in `users`
+- [x] maybe change `interval` to `int`
