@@ -121,10 +121,10 @@ CREATE TABLE payments (
 -- история прослушивания
 CREATE TABLE play_history (
 	user_id int REFERENCES users,
-	song_id int REFERENCES songs ON DELETE CASCADE,
+	song_id int NOT NULL REFERENCES songs ON DELETE CASCADE,
 	played_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP CHECK (played_at <= CURRENT_TIMESTAMP),
 	duration_sec int NOT NULL,
-	PRIMARY KEY (user_id, song_id)
+	PRIMARY KEY (user_id, played_at)
 );
 
 CREATE TABLE artist_songs (
@@ -185,6 +185,8 @@ CREATE INDEX ON payments (user_id);
 CREATE INDEX ON payments (subscription_id);
 
 CREATE INDEX ON play_history (song_id);
+
+CREATE INDEX ON play_history (played_at);
 
 CREATE INDEX ON artist_songs (song_id);
 

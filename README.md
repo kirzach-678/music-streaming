@@ -114,8 +114,8 @@ erDiagram
 
 	PLAY-HISTORY {
 		int userId FK,PK
-		int songId FK,PK
-		timestamptz playedAt
+		int songId FK
+		timestamptz playedAt PK
 		int durationSec
 	}
 
