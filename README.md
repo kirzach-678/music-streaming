@@ -78,7 +78,7 @@ erDiagram
 		text passwordHash
 		date registrationDate
 		boolean deleted
-		text deletion_reason
+		text del_reason
 	}
 
 	SUBSCRIPTION {

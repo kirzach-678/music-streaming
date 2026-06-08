@@ -18,7 +18,7 @@ CREATE TYPE access_type AS ENUM (
 	'public'
 );
 
-CREATE TYPE deletion_reason_t AS ENUM (
+CREATE TYPE deletion_reason AS ENUM (
 	'ban',
 	'voluntary' -- пользователь сам удалил свой аккаунт
 );
@@ -85,9 +85,8 @@ CREATE TABLE users (
 	password_hash text NOT NULL, -- храним хэш пароля по очевидным причинам безопасности
 	registration_date date NOT NULL DEFAULT CURRENT_DATE,
 	deleted boolean NOT NULL DEFAULT FALSE,
-	deletion_reason deletion_reason_t,
-	CHECK ((deleted) AND (deletion_reason IS NOT NULL) OR (NOT deleted) AND (deletion_reason IS
-	NULL)) -- если пользователь удалён, должна быть указана причина (и наоборот)
+	del_reason deletion_reason, -- причина удаления пользователя
+	CHECK ((deleted) AND (del_reason IS NOT NULL) OR (NOT deleted) AND (del_reason IS NULL)) -- если пользователь удалён, должна быть указана причина (и наоборот)
 );
 
 -- плейлисты
