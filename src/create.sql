@@ -80,10 +80,11 @@ CREATE TABLE releases (
 CREATE TABLE users (
 	user_id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	subscription_auto_renewal boolean NOT NULL DEFAULT TRUE, -- автоматическое продление подписки
+	subscription_active_until timestamptz, -- до какого момента подписка активна, добавлено, чтобы постоянно не вычислять данное значение (вычисляется на основе значений из payment и subscription)
 	name text NOT NULL,
 	email email NOT NULL,
 	password_hash text NOT NULL, -- храним хэш пароля по очевидным причинам безопасности
-	registration_date date NOT NULL DEFAULT CURRENT_DATE,
+	registration_date date NOT NULL DEFAULT CURRENT_DATE CHECK (registration_date <= CURRENT_DATE),
 	deleted boolean NOT NULL DEFAULT FALSE,
 	del_reason deletion_reason, -- причина удаления пользователя
 	CHECK ((deleted) AND (del_reason IS NOT NULL) OR (NOT deleted) AND (del_reason IS NULL)) -- если пользователь удалён, должна быть указана причина (и наоборот)
@@ -114,14 +115,14 @@ CREATE TABLE payments (
 	amount_paid my_money NOT NULL CHECK (amount_paid >= 0), -- сумма к оплате копируется из таблицы subscriptions, чтобы она не изменилась при изменении стоимости подписки
 	method payment_method NOT NULL,
 	status payment_status NOT NULL DEFAULT 'pending',
-	dt timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP -- время оплаты
+	dt timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP CHECK (dt <= CURRENT_TIMESTAMP) -- время оплаты
 );
 
 -- история прослушивания
 CREATE TABLE play_history (
 	user_id int REFERENCES users,
 	song_id int REFERENCES songs ON DELETE CASCADE,
-	played_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	played_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP CHECK (played_at <= CURRENT_TIMESTAMP),
 	duration_sec int NOT NULL,
 	PRIMARY KEY (user_id, song_id)
 );
@@ -159,7 +160,7 @@ CREATE TABLE song_playlists (
 CREATE TABLE user_labels (
 	user_id int REFERENCES users,
 	label_id int REFERENCES labels ON DELETE CASCADE,
-	appointment_date date NOT NULL DEFAULT CURRENT_DATE, -- когда сотрудника приняли на работу в лейбл
+	appointment_date date NOT NULL DEFAULT CURRENT_DATE CHECK (appointment_date <= CURRENT_DATE), -- когда сотрудника приняли на работу в лейбл
 	PRIMARY KEY (user_id, label_id)
 );
 
@@ -167,7 +168,7 @@ CREATE TABLE user_artists (
 	user_id int REFERENCES users,
 	artist_id int REFERENCES artists ON DELETE CASCADE,
 	nickname text NOT NULL,
-	joining_date date NOT NULL DEFAULT CURRENT_DATE, -- когда участник присоединился к артисту
+	joining_date date NOT NULL DEFAULT CURRENT_DATE CHECK (joining_date <= CURRENT_DATE), -- когда участник присоединился к артисту
 	PRIMARY KEY (user_id, artist_id)
 );
 
@@ -196,3 +197,33 @@ CREATE INDEX ON song_playlists (playlist_id);
 CREATE INDEX ON user_labels (label_id);
 
 CREATE INDEX ON user_artists (artist_id);
+
+---- ТРИГГЕРЫ ----
+-- функция для обновления subscription_active_until
+CREATE OR REPLACE FUNCTION update_user_subscription_date ()
+	RETURNS TRIGGER
+	AS $$
+DECLARE
+	sub_duration interval;
+BEGIN
+	IF (NEW.status = 'completed' AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM NEW.status)) THEN
+		SELECT duration
+		INTO
+			sub_duration
+		FROM subscriptions
+		WHERE subscription_id = NEW.subscription_id;
+		UPDATE
+			users
+		SET subscription_active_until = GREATEST (COALESCE(subscription_active_until, NEW.dt), NEW.dt) + sub_duration
+		WHERE user_id = NEW.user_id;
+	END IF;
+	RETURN NEW;
+END;
+$$
+LANGUAGE plpgsql;
+
+-- триггер, где вызывается эта функция
+CREATE TRIGGER trg_update_subscription_date
+	AFTER INSERT OR UPDATE OF status ON payments
+	FOR EACH ROW
+	EXECUTE FUNCTION update_user_subscription_date ();

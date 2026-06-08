@@ -11,7 +11,7 @@ erDiagram
 		text title
 		int durationSec
 		boolean explicit
-		date publication_date
+		date publicationDate
 	}
 
 	GENRE {
@@ -73,12 +73,13 @@ erDiagram
 	USER {
 		int userId PK
 		boolean subscriptionAutoRenewal
+		timestamptz subscriptionActiveUntil
 		text name
 		text email
 		text passwordHash
 		date registrationDate
 		boolean deleted
-		text del_reason
+		text delReason
 	}
 
 	SUBSCRIPTION {
